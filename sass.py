@@ -131,8 +131,7 @@ def write_file():
         "No existing events were detected."
         event = Event(input("Please enter a new event name: "),memberindex+1)
         sheet.insert_cols(memberindex+1)
-    for row in sheet.iter_rows():
-        updated = False
+    for row in sheet.iter_rows(min_row=3, values_only=False):
         name = row[memberindex].value.lower()
         year = int(row[yearindex].value)
         for person in people:
@@ -142,11 +141,37 @@ def write_file():
                 else:
                     row[event.col] += 1
                 people.remove(person)
-                updated = True
+                if internalCalc:
+                    tally = 0
+                    for ev in events+[event]:
+                        try:
+                            tally += int(row[ev.col].value)
+                        except(ValueError):
+                            print("Internal Calulation failed. Not updating counts for {}".format(person.fname))
+                            break
+                    row[termattendanceindex].value = tally
+                else:
+                    formulae = []
+                    for cell in row:
+                        if cell.value.count("="):
+                            formulae.append(cell.column)
+                    if len(formulae) == 0:
+                        print("did not detect any formulas, skipping update process")
+                        break
+                    oldcol = ""
+                    newcol = ""
+                    for chara in row[event.col-1].coordinate:
+                        if chara.isalpha():
+                            oldcol += chara
+                    for chara in row[event.col].coordinate:
+                        if chara.isalpha():
+                            newcol += chara
+                    for formula in formulae:
+                        formula = formula.replace(oldcol, newcol)
                 break
-        if updated:
-            # TODO - add formula updating / internal calc system
             pass
-    wb.save(filename)
+    wb.save(outfile)
             
                 
+write_file()
+print("done")
