@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os
 import sys
+import datetime
 termwidth = os.get_terminal_size()[0]
 print("Welcome to Sukriti's Attendance Synchronization System (SASS)!".center(termwidth, ' '))
 
@@ -30,10 +31,10 @@ except(ModuleNotFoundError):
     if input("Install it now? (y/N)").lower() == "y":
         os.system("pip3 install openpyxl")
     else:
-        print("Fatal error! Please install openpyxl manually.")
+        print("Fatal error! Please install openpyxl manually and try again.")
         exit()
 
-print("The output sheet may have formulas that do not account for this program's changes, although I'll try my best to update them. To get around this, I can remove the formulas and write in my own calulated values.")
+print("\nThe output sheet may have formulas. I'll try my best to update them automatically, but this might have unexpected behavior. Alternativley, I can replace them with my own calculations.")
 internalCalc = (input("Override Excel Formulas? (y/N) ").lower() == "y")
 
 class Attendee:
@@ -41,7 +42,7 @@ class Attendee:
     lname: str
     year: int
     email: str
-    time: str
+    time: datetime.datetime
 
 def read_file():
     attendees = []
@@ -87,6 +88,14 @@ class Event:
         self.name = name
         self.col = col
 
+def dateformatter(indate):
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    try:
+        out = "{}-{}".format(indate.day, months[indate.month-1])
+    except(AttributeError):
+        out = input("Automated date system failed. Please input date manually: ")
+    return out
+
 # i'm writing this at 11 PM, it needs to be done by tomorrow, get ready for the worst search function you've ever seen in your life
 def write_file():
     import shutil
@@ -131,6 +140,8 @@ def write_file():
                 event = Event(input("Please enter a new event name: "),events[-1].col+1)
                 labels = tuple(sheet.rows)[2]
                 labels[event.col].value = event.name
+                dates = tuple(sheet.rows)[1]
+                dates[event.col].value = dateformatter(people[0].time)
         except(ValueError, IndexError):
             print("Bad input! Please enter a number!")
             write_file()
