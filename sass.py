@@ -130,7 +130,7 @@ def write_file():
                 sheet.insert_cols(events[-1].col+2)
                 event = Event(input("Please enter a new event name: "),events[-1].col+1)
                 labels = tuple(sheet.rows)[2]
-                labels[events[-1].col].value = events[-1].name
+                labels[event.col].value = event.name
         except(ValueError, IndexError):
             print("Bad input! Please enter a number!")
             write_file()
@@ -140,13 +140,12 @@ def write_file():
         event = Event(input("Please enter a new event name: "),memberindex+1)
         sheet.insert_cols(memberindex+1)
         labels = tuple(sheet.rows)[2]
-        labels[memberindex+1].value = event[-1].name
+        labels[event.col].value = event.name
     for row in sheet.iter_rows(min_row=4, values_only=False):
         name = row[memberindex].value.lower()
         year = int(row[yrindex].value)
         for person in people:
             if name == (person.fname.lower() + " " + person.lname.lower()) and year == person.year:
-                print("debug: processing person",person.fname)
                 if row[event.col].value is None:
                     row[event.col].value = 1
                 else:
@@ -195,7 +194,6 @@ def write_file():
                         formula = formula.replace(oldcol, newcol)
                 break
             else:
-                print("debug: {} did not match {}".format((person.fname + " " + person.lname), name))
     if len(people):
         print("The following {} attendees were listed on the form but not present in the main sheet:")
         for i in people:
