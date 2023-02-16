@@ -15,7 +15,7 @@ for i in range (0,len(sys.argv)):
             outfile = sys.argv[i+1]
 
 
-if not interactive and (not len(infile) or not len(outfile)):
+if (not len(infile) or not len(outfile)):
     print("\n Bad command invocation. Printing Help text...\n")
     print("Usage:\npython3 sass.py -i [input.xlsx] -o [output.xlsx]")
     print("Options:")
@@ -75,6 +75,11 @@ def read_file():
         attendees[-1].time = row[tsindex]
         attendees[-1].year = int(row[yrindex])
         attendees[-1].email = row[emindex]
+    print("read {} attendees from input sheet:".format(len(attendees)))
+    for i in attendees:
+        print("fname: ", i.fname)
+        print("lname: ", i.lname)
+        print("year: ", i.year, type(i.year))
     return attendees
 
 class Event:
@@ -86,7 +91,7 @@ class Event:
 def write_file():
     import shutil
     shutil.copyfile(outfile, outfile+".bak")
-    print("Created backup of Excel File\n")
+    print("Created backup of Excel File as {}.bak\n".format(outfile))
     wb = op.load_workbook(filename=outfile)
     sheet = wb.active
     labels = tuple(sheet.rows)[2]
@@ -110,7 +115,8 @@ def write_file():
             case "Activity": # may not be correct
                 activityindex = i
             case _:
-                events.append(Event(labels[i].value, i))
+                if labels[i].value is not None:
+                    events.append(Event(labels[i].value, i))
     if len(events):
         print("I found the following Events:".center(termwidth))
         for i in range(0, len(events)):
@@ -121,8 +127,10 @@ def write_file():
             if choice:
                 event = events[choice-1]
             else:
-                sheet.insert_cols(events[-1].col+1)
+                sheet.insert_cols(events[-1].col+2)
                 event = Event(input("Please enter a new event name: "),events[-1].col+1)
+                labels = tuple(sheet.rows)[2]
+                labels[events[-1].col].value = events[-1].name
         except(ValueError, IndexError):
             print("Bad input! Please enter a number!")
             write_file()
@@ -131,16 +139,33 @@ def write_file():
         "No existing events were detected."
         event = Event(input("Please enter a new event name: "),memberindex+1)
         sheet.insert_cols(memberindex+1)
-    for row in sheet.iter_rows(min_row=3, values_only=False):
+        labels = tuple(sheet.rows)[2]
+        labels[memberindex+1].value = event[-1].name
+    for row in sheet.iter_rows(min_row=4, values_only=False):
         name = row[memberindex].value.lower()
-        year = int(row[yearindex].value)
+        year = int(row[yrindex].value)
         for person in people:
-            if name == person.fname + " " + person.lname and year == person.year:
-                if row[event.col] is None:
-                    row[event.col] = 1
+            if name == (person.fname.lower() + " " + person.lname.lower()) and year == person.year:
+                print("debug: processing person",person.fname)
+                if row[event.col].value is None:
+                    row[event.col].value = 1
                 else:
-                    row[event.col] += 1
+                    row[event.col].value += 1
                 people.remove(person)
+                # Recalculate column indexes
+                labels = tuple(sheet.rows)[2]
+                for i in range(0, len(labels)):
+                    match labels[i].value:
+                        case "Grad Year":
+                            yrindex = i
+                        case "Member":
+                            memberindex = i
+                        case "":
+                            pass
+                        case "Term attendance":
+                            termattendanceindex = i
+                        case "Activity": # may not be correct
+                            activityindex = i
                 if internalCalc:
                     tally = 0
                     for ev in events+[event]:
@@ -169,9 +194,17 @@ def write_file():
                     for formula in formulae:
                         formula = formula.replace(oldcol, newcol)
                 break
-            pass
+            else:
+                print("debug: {} did not match {}".format((person.fname + " " + person.lname), name))
+    if len(people):
+        print("The following {} attendees were listed on the form but not present in the main sheet:")
+        for i in people:
+            print("* ", i.fname, i.lname)
+        if input("Add attendees to main sheet? (Y/n)").lower() != 'n':
+            for i in people:
+                personName = i.fname + " " + i.lname
+                sheet.append({yrindex+1: i.year, memberindex+1: personName, termattendanceindex+1: 1, events[-1].col+1: 1})
     wb.save(outfile)
-            
                 
 write_file()
 print("done")
