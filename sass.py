@@ -177,8 +177,9 @@ def write_file():
                 else:
                     formulae = []
                     for cell in row:
-                        if cell.value.count("="):
-                            formulae.append(cell.column)
+                        if type(cell.value) is str:
+                            if cell.value.count("="):
+                                formulae.append(cell.column-1)
                     if len(formulae) == 0:
                         print("did not detect any formulas, skipping update process")
                         break
@@ -191,9 +192,11 @@ def write_file():
                         if chara.isalpha():
                             newcol += chara
                     for formula in formulae:
-                        formula = formula.replace(oldcol, newcol)
+                        try:
+                            row[formula].value = row[formula].value.replace(oldcol, newcol)
+                        except(AttributeError):
+                            print("tried to access cell {} whose type is {}".format(row[formula].coordinate, type(row[formula].value)))
                 break
-            else:
     if len(people):
         print("The following {} attendees were listed on the form but not present in the main sheet:")
         for i in people:
