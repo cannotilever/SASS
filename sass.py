@@ -57,17 +57,20 @@ def read_file():
     emindex = 4
     # auto-assign indexes based on first row
     for lbi in range(0,len(labels)):
-        match labels[lbi].value.lower():
-            case "timestamp":
-                tsindex = lbi
-            case "first name":
-                fnindex = lbi
-            case "last name":
-                lnindex = lbi
-            case "grad year":
-                yrindex = lbi
-            case "wpi email":
-                emindex = lbi
+        try:
+            match labels[lbi].value.lower():
+                case "timestamp":
+                    tsindex = lbi
+                case "first name":
+                    fnindex = lbi
+                case "last name":
+                    lnindex = lbi
+                case "grad year":
+                    yrindex = lbi
+                case "wpi email":
+                    emindex = lbi
+        except(ValueError, AttributeError):
+            pass
 
     for row in sheet.iter_rows(min_row=2, values_only=True):
         attendees.append(Attendee())
@@ -215,7 +218,13 @@ def write_file():
         if input("Add attendees to main sheet? (Y/n)").lower() != 'n':
             for i in people:
                 personName = i.fname + " " + i.lname
-                sheet.append({yrindex+1: i.year, memberindex+1: personName, termattendanceindex+1: 1, events[-1].col+1: 1})
+                sheet.append({yrindex+1: i.year, memberindex+1: personName, event.col+1: 1})
+                newrow = tuple(sheet.rows)[-1]
+                for cell in range(memberindex+1, event.col):
+                    newrow[cell].value = 0
+                firstcell = newrow[memberindex+1].coordinate
+                lastcell = newrow[event.col].coordinate
+                newrow[termattendanceindex].value = "=SUM({}:{})".format(firstcell,lastcell)
     wb.save(outfile)
                 
 write_file()
