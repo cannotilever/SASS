@@ -3,10 +3,11 @@ import os
 import sys
 import datetime
 termwidth = os.get_terminal_size()[0]
-print("Welcome to Sukriti's Attendance Synchronization System (SASS)!".center(termwidth, ' '))
+print("Welcome to Sukriti's Attendance Synchronization System (SASS)!".center(termwidth, '-'),"\n\n")
 
 infile = ""
 outfile = ""
+interactive = False
 
 for i in range (0,len(sys.argv)):
     match sys.argv[i]:
@@ -14,22 +15,101 @@ for i in range (0,len(sys.argv)):
             infile = sys.argv[i+1]
         case "-o":
             outfile = sys.argv[i+1]
+        case "-I" | "--interactive":
+            interactive = True
 
+def showfileoptions(flist: list):
+    for i in range(0,len(flist)):
+        print("{}) {}".format(i+1,flist[i]))
 
-if (not len(infile) or not len(outfile)):
+def changedir():
+    ch = input("\nPlease enter your desired path or press enter to enter interactive mode: ")
+    if len(ch):
+        try:
+            os.chdir(ch)
+            return
+        except(FileNotFoundError):
+            input("That wasn't a valid path. Press enter to continue.")
+            return changedir()
+    while True:
+        print("\n------------------\nCurrent folder: ",os.getcwd())
+        dirs = []
+        for dir in os.scandir():
+            if dir.is_dir():
+                dirs.append(dir)
+        for dir in range(0,len(dirs)):
+            print("{}) {}".format(dir+i, dirs[dir].name))
+        print("0) Go up one directory")
+        print("\nIf you're done, press enter")
+        
+        choice = input("\n select an option: ")
+        try:
+            choice = int(choice)
+        except(ValueError):
+            if len(choice):
+                print("That wasn't a number!")
+                continue
+            return
+        if choice == 0:
+            os.chdir("..")
+        else:
+            try:
+                os.chdir(dirs[choice-1])
+            except(IndexError):
+                print("That wasn't an option! retrying")
+                
+
+def findfiles(name: str):
+    print("Current directory: ",os.getcwd())
+    xlfiles = []
+    for f in os.scandir():
+        f = f.name
+        if f.count(".xlsx"):
+            xlfiles.append(f)
+    if len(xlfiles):
+        print("Found {} excel files in current directory".format(len(xlfiles)))
+        showfileoptions(xlfiles)
+        print("0) Choose a different folder")
+        try:
+            choice = int(input("Please select the number of the {}: ".format(name)))
+        except(ValueError):
+            print("That wasn't a number you silly goose! \n")
+            return findfiles(name)
+        if choice == 0:
+            changedir()
+            return findfiles(name)
+        else:
+            return xlfiles[choice-1]
+    else:
+        print("I can't find any excel files in this folder".center(12,"!"))
+        input("Press enter to continue...")
+        changedir()
+        return findfiles(name)
+        
+             
+
+if ((not len(infile) or not len(outfile)) and not interactive):
     print("\n Bad command invocation. Printing Help text...\n")
     print("Usage:\npython3 sass.py -i [input.xlsx] -o [output.xlsx]")
     print("Options:")
     print("-i                   specify input excel/google sheets file")
     print("-o                   specify target / output excel file")
+    print("-I --interactve      run in interactive file choosing mode")
     exit()
-    
+
+if interactive:
+    print("\n Starting in interactive mode.\n")
+    infile = findfiles("Downloaded Google Form")
+    print("\n------\n")
+    outfile = findfiles("Main excel sheet")
+    print("out: {} in: {}".format(outfile,infile)) 
 try:
     import openpyxl as op
 except(ModuleNotFoundError):
     print("Excel support library not installed")
-    if input("Install it now? (y/N)").lower() == "y":
+    if input("Install it now? (y/N) ").lower() == "y":
         os.system("pip3 install openpyxl")
+        import openpyxl as op
     else:
         print("Fatal error! Please install openpyxl manually and try again.")
         exit()
@@ -79,11 +159,7 @@ def read_file():
         attendees[-1].time = row[tsindex]
         attendees[-1].year = int(row[yrindex])
         attendees[-1].email = row[emindex]
-    print("read {} attendees from input sheet:".format(len(attendees)))
-    for i in attendees:
-        print("fname: ", i.fname)
-        print("lname: ", i.lname)
-        print("year: ", i.year, type(i.year))
+    print("Read {} attendees from input sheet.".format(len(attendees)))
     return attendees
 
 class Event:
@@ -96,14 +172,14 @@ def dateformatter(indate):
     try:
         out = "{}-{}".format(indate.day, months[indate.month-1])
     except(AttributeError):
-        out = input("Automated date system failed. Please input date manually: ")
+        out = input("Automated date system failed. Please input date of manually (MMM-DD): ")
     return out
 
 # i'm writing this at 11 PM, it needs to be done by tomorrow, get ready for the worst search function you've ever seen in your life
 def write_file():
     import shutil
     shutil.copyfile(outfile, outfile+".bak")
-    print("Created backup of Excel File as {}.bak\n".format(outfile))
+    print("Created backup of main Excel File as {}.bak\n".format(outfile))
     wb = op.load_workbook(filename=outfile)
     sheet = wb.active
     labels = tuple(sheet.rows)[2]
