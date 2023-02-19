@@ -2,6 +2,7 @@
 import os
 import sys
 import datetime
+from copy import copy
 termwidth = os.get_terminal_size()[0]
 print("Welcome to Sukriti's Attendance Synchronization System (SASS)!".center(termwidth, '-'),"\n\n")
 
@@ -182,29 +183,23 @@ def write_file():
     print("Created backup of main Excel File as {}.bak\n".format(outfile))
     wb = op.load_workbook(filename=outfile)
     sheet = wb.active
-    labels = tuple(sheet.rows)[2]
+    labels = tuple(sheet.rows)[0]
     events = []
     people = read_file()
     event = Event("default",0)
     yrindex = 0
     memberindex = 1
-    termattendanceindex = 14
-    activityindex = 15
+    termattendanceindex = 3
     for i in range(0, len(labels)):
         match labels[i].value:
-            case "Grad Year":
-                yrindex = i
-            case "Member":
+            case "Event": # It's not intuitive but it's how the sheet is layed out
                 memberindex = i
             case "":
-                pass
-            case "Term attendance":
-                termattendanceindex = i
-            case "Activity": # may not be correct
-                activityindex = i
+                continue
             case _:
                 if labels[i].value is not None:
                     events.append(Event(labels[i].value, i))
+    termattendanceindex = events[-1].col+1
     if len(events):
         print("I found the following Events:".center(termwidth))
         for i in range(0, len(events)):
@@ -217,10 +212,12 @@ def write_file():
             else:
                 sheet.insert_cols(events[-1].col+2)
                 event = Event(input("Please enter a new event name: "),events[-1].col+1)
-                labels = tuple(sheet.rows)[2]
+                labels = tuple(sheet.rows)[0]
                 labels[event.col].value = event.name
+                labels[event.col].fill = copy(sheet.cell(1,1).fill)
                 dates = tuple(sheet.rows)[1]
                 dates[event.col].value = dateformatter(people[0].time)
+                dates[event.col].fill = copy(sheet.cell(1,1).fill)
         except(ValueError, IndexError):
             print("Bad input! Please enter a number!")
             write_file()
@@ -229,32 +226,34 @@ def write_file():
         "No existing events were detected."
         event = Event(input("Please enter a new event name: "),memberindex+1)
         sheet.insert_cols(memberindex+1)
-        labels = tuple(sheet.rows)[2]
+        labels = tuple(sheet.rows)[0]
         labels[event.col].value = event.name
-    for row in sheet.iter_rows(min_row=4, values_only=False):
+        labels[event.col].fill = copy(sheet.cell(1,1).fill)
+        dates = tuple(sheet.rows)[1]
+        dates[event.col].value = dateformatter(people[0].time)
+        dates[event.col].fill.bgColor = copy(sheet.cell(1,1).fill)
+    for row in sheet.iter_rows(min_row=3, values_only=False):
         name = row[memberindex].value.lower()
-        year = int(row[yrindex].value)
+        try:
+            year = int(row[yrindex].value)
+        except(TypeError):
+            year = ""
         for person in people:
-            if name == (person.fname.lower() + " " + person.lname.lower()) and year == person.year:
+            if name == (person.fname.lower() + " " + person.lname.lower()):
                 if row[event.col].value is None:
                     row[event.col].value = 1
                 else:
                     row[event.col].value += 1
                 people.remove(person)
                 # Recalculate column indexes
-                labels = tuple(sheet.rows)[2]
+                labels = tuple(sheet.rows)[0]
                 for i in range(0, len(labels)):
                     match labels[i].value:
-                        case "Grad Year":
-                            yrindex = i
-                        case "Member":
+                        case "Event": # It's not intuitive but it's how the sheet is layed out
                             memberindex = i
                         case "":
-                            pass
-                        case "Term attendance":
-                            termattendanceindex = i
-                        case "Activity": # may not be correct
-                            activityindex = i
+                            continue
+                termattendanceindex = events[-1].col+1
                 if internalCalc:
                     tally = 0
                     for ev in events+[event]:
@@ -263,7 +262,7 @@ def write_file():
                         except(ValueError):
                             print("Internal Calulation failed. Not updating counts for {}".format(person.fname))
                             break
-                    row[termattendanceindex].value = tally
+                    row[termattendanceindex+1].value = tally
                 else:
                     formulae = []
                     for cell in row:
@@ -300,8 +299,8 @@ def write_file():
                     newrow[cell].value = 0
                 firstcell = newrow[memberindex+1].coordinate
                 lastcell = newrow[event.col].coordinate
-                newrow[termattendanceindex].value = "=SUM({}:{})".format(firstcell,lastcell)
+                newrow[termattendanceindex+1].value = "=SUM({}:{})".format(firstcell,lastcell)
     wb.save(outfile)
                 
 write_file()
-print("done")
+print("done.")
