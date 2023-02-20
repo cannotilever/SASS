@@ -234,7 +234,7 @@ def write_file():
         dates[event.col].fill.bgColor = copy(sheet.cell(1,1).fill)
     for row in sheet.iter_rows(min_row=3, values_only=False):
         try:
-            name = row[memberindex].value.lower()
+            name = row[memberindex].value.lower().lstrip().rstrip()
         except(AttributeError):
             continue
         try:
@@ -242,7 +242,7 @@ def write_file():
         except(TypeError):
             year = ""
         for person in people:
-            if name == (person.fname.lower() + " " + person.lname.lower()):
+            if name == (person.fname.lower().lstrip().rstrip() + " " + person.lname.lower().lstrip().rstrip()):
                 if row[event.col].value is None:
                     row[event.col].value = 1
                 else:
