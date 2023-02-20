@@ -10,9 +10,9 @@ infile = ""
 outfile = ""
 interactive = True
 try:
-    os.chdir("C/Users/sukriti/Downloads") # Hard-coded values like a boss B)
+    os.chdir("C:\\Users\\sukri\\Downloads") # Hard-coded values like a boss B)
 except(FileNotFoundError):
-    pass
+    print("Can't find downloads!")
 
 for i in range (0,len(sys.argv)):
     match sys.argv[i]:
