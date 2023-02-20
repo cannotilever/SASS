@@ -8,16 +8,19 @@ print("Welcome to Sukriti's Attendance Synchronization System (SASS)!".center(te
 
 infile = ""
 outfile = ""
-interactive = False
+interactive = True
+try:
+    os.chdir("C/Users/sukriti/Downloads") # Hard-coded values like a boss B)
+except(FileNotFoundError):
+    pass
 
 for i in range (0,len(sys.argv)):
     match sys.argv[i]:
         case "-i":
             infile = sys.argv[i+1]
+            interactive = False
         case "-o":
             outfile = sys.argv[i+1]
-        case "-I" | "--interactive":
-            interactive = True
 
 def showfileoptions(flist: list):
     for i in range(0,len(flist)):
@@ -55,7 +58,7 @@ def changedir():
             os.chdir("..")
         else:
             try:
-                os.chdir(dirs[choice-1])
+                os.chdir(dirs[choice])
             except(IndexError):
                 print("That wasn't an option! retrying")
                 
