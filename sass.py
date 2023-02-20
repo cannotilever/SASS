@@ -233,7 +233,10 @@ def write_file():
         dates[event.col].value = dateformatter(people[0].time)
         dates[event.col].fill.bgColor = copy(sheet.cell(1,1).fill)
     for row in sheet.iter_rows(min_row=3, values_only=False):
-        name = row[memberindex].value.lower()
+        try:
+            name = row[memberindex].value.lower()
+        except(AttributeError):
+            continue
         try:
             year = int(row[yrindex].value)
         except(TypeError):
